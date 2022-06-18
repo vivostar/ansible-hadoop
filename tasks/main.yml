@@ -61,16 +61,6 @@
     path: "{{ hadoop_install_dir }}"
   register: dir
 
-- name: Create Hadoop installation dir {{ hadoop_install_dir }}
-  file:
-    path: "{{ hadoop_install_dir }}"
-    state: directory
-    group: "{{ hadoop_group }}"
-    owner: "{{ hadoop_user }}"
-    mode: 0775
-  when: not dir.stat.exists
-  tags:
-    - hadoop_dirs
 
 - name: Download Apache druid {{ hadoop_download_url }}
   get_url:
@@ -82,6 +72,17 @@
     - install_method == 'web'
   tags:
     - druid_download
+  
+- name: Create Hadoop installation dir {{ hadoop_install_dir }}
+  file:
+    path: "{{ hadoop_install_dir }}"
+    state: directory
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0775
+  when: not dir.stat.exists
+  tags:
+    - hadoop_dirs
 
 
 - name: Unpack Apache Hadoop
