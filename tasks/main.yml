@@ -73,16 +73,16 @@
   tags:
     - druid_download
   
-- name: Create Hadoop installation dir {{ hadoop_install_dir }}
-  file:
-    path: "{{ hadoop_install_dir }}"
-    state: directory
-    group: "{{ hadoop_group }}"
-    owner: "{{ hadoop_user }}"
-    mode: 0775
-  when: not dir.stat.exists
-  tags:
-    - hadoop_dirs
+# - name: Create Hadoop installation dir {{ hadoop_install_dir }}
+#   file:
+#     path: "{{ hadoop_install_dir }}"
+#     state: directory
+#     group: "{{ hadoop_group }}"
+#     owner: "{{ hadoop_user }}"
+#     mode: 0775
+#   when: not dir.stat.exists
+#   tags:
+#     - hadoop_dirs
 
 
 - name: Unpack Apache Hadoop
