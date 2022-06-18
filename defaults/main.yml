@@ -2,7 +2,7 @@
 hadoop_version: "3.2.3"
 hadoop_package: "hadoop-{{ hadoop_version }}.tar.gz"
 hadoop_mirror: "https://soul3434.oss-ap-northeast-2.aliyuncs.com/hadoop"
-hadoop_download_url: "{{ hadoop_mirror }}/hadoop-{{ hadoop_version }}/{{ hadoop_package }}"
+hadoop_download_url: "{{ hadoop_mirror }}/{{ hadoop_package }}"
 
 hadoop_group: hadoop
 hadoop_user: hadoop
