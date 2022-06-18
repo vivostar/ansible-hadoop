@@ -1,0 +1,19 @@
+[Unit]
+Description=Hadoop DFS datanode
+After=network.target
+Requires=network.target
+
+[Service]
+User={{ hadoop_group }}
+Group={{ hadoop_user }}
+Type=forking
+ExecStart={{ hadoop_home }}/bin/hdfs --daemon start datanode
+ExecStop={{ hadoop_home }}/bin/hdfs --daemon stop datanode
+Environment="JAVA_HOME={{ ansible_facts['env']['JAVA_HOME'] }}"
+Environment="HADOOP_HOME={{ hadoop_home }}"
+TimeoutStartSec=1min
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=hdfs.service

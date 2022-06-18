@@ -1,0 +1,6 @@
+- name: Install hadoop
+  hosts: all
+
+  roles:
+    - role: ../ansible-hadoop
+

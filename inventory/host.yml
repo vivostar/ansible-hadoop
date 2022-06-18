@@ -1,0 +1,32 @@
+---
+namenode:
+  hosts:
+    druid-1:
+
+datanode:
+  hosts:
+    druid-1: 
+    druid-2: 
+    druid-3:
+    druid-4: 
+
+resource_manager:
+  hosts:
+    druid-1:
+
+node_manager:
+  hosts:
+    druid-1: 
+    druid-2: 
+    druid-3: 
+    druid-4:
+
+
+all:
+  vars:
+    ansible_connection: ssh
+    ansible_ssh_user: root
+    ansible_ssh_pass: root
+    ansible_become: true
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    

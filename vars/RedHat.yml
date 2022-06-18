@@ -1,0 +1,5 @@
+---
+hadoop_hdfs_datanode_unit_path: "/usr/lib/systemd/system/datanode.service"
+hadoop_hdfs_namenode_unit_path: "/usr/lib/systemd/system/namenode.service"
+hadoop_yarn_rm_unit_path: "/usr/lib/systemd/system/rm.service"
+hadoop_yarn_nm_unit_path: "/usr/lib/systemd/system/nm.service"

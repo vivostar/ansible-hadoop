@@ -1,0 +1,6 @@
+- name: Restart Hadoop service
+  systemd:
+    name: namenode.service
+    state: restarted
+    daemon_reload: yes
+  when: namenode_restart

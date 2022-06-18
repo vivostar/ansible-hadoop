@@ -1,0 +1,349 @@
+---
+- name: Load OS-specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - ../vars/{{ ansible_os_family }}.yml
+    - ../vars/{{ ansible_distribution_release }}.yml
+    - ../vars/empty.yml
+  tags:
+    - always
+
+- name: Create HADOOP group
+  group:
+    name: "{{ hadoop_group }}"
+    state: present
+    system: yes
+  tags:
+    - druid_group
+
+- name: Create HDFS user
+  user:
+    name: "{{ hdfs_user }}"
+    group: "{{ hadoop_group }}"
+    state: present
+    createhome: yes
+    system: yes
+  tags:
+    - hadoop_user
+
+- name: Create YARN user
+  user:
+    name: "{{ yarn_user }}"
+    group: "{{ hadoop_group }}"
+    state: present
+    createhome: yes
+    system: yes
+  tags:
+    - hadoop_user
+
+- name: Create MAPRED user
+  user:
+    name: "{{ mapred_user }}"
+    group: "{{ hadoop_group }}"
+    state: present
+    createhome: yes
+    system: yes
+  tags:
+    - hadoop_user
+
+- name: Create HADOOP user
+  user:
+    name: "{{ hadoop_user }}"
+    group: "{{ hadoop_group }}"
+    state: present
+    createhome: yes
+    system: yes
+  tags:
+    - hadoop_user
+
+- name: Check if Hadoop has already been downloaded and unpacked
+  stat:
+    path: "{{ hadoop_install_dir }}"
+  register: dir
+
+- name: Create Hadoop installation dir {{ hadoop_install_dir }}
+  file:
+    path: "{{ hadoop_install_dir }}"
+    state: directory
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0775
+  when: not dir.stat.exists
+  tags:
+    - hadoop_dirs
+
+- name: Download Apache druid {{ hadoop_download_url }}
+  get_url:
+    url: "{{ hadoop_download_url }}"
+    dest: /tmp
+    validate_certs: no
+  when: 
+    - not dir.stat.exists
+    - install_method == 'web'
+  tags:
+    - druid_download
+
+
+- name: Unpack Apache Hadoop
+  unarchive:
+    src: /tmp/{{ hadoop_package }}
+    dest: "{{ hadoop_install_dir }}"
+    copy: "{{ (install_method == 'local') | ternary('yes', 'no') }}"
+    extra_opts: [--strip-components=1]
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}" 
+  when: not dir.stat.exists
+  tags:
+    - hadoop_unpack
+
+     
+- name: Create symlink to Hadoop installation
+  file:
+    src: "{{ hadoop_install_dir }}"
+    dest: "{{ hadoop_home }}"
+    state: link
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+  tags:
+    - hadoop_dirs
+
+- name: Create hadoop tmp directory
+  file:
+    path: "{{ hadoop_tmp_dir }}"
+    state: directory
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0775
+  tags:
+    - hadoop_dirs
+
+- name: Create hadoop pid file
+  file:
+    path: "{{ hadoop_hdfs_pid_dir }}"
+    state: directory
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0775
+  tags:
+    - hadoop_dirs
+
+- name: Create hadoop log directory
+  file:
+    path: "{{ hadoop_log_dir }}"
+    state: directory
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0775
+  tags:
+    - hadoop_dirs
+
+- name: Create hadoop name directory
+  file:
+    path: "{{ hadoop_hdfs_name_dir }}"
+    state: directory
+    group: "{{ hadoop_group }}"
+    owner: "{{ hdfs_user }}"
+    mode: 0775
+  tags:
+    - hadoop_dirs
+
+- name: Create hadoop data directory
+  file:
+    path: "{{ hadoop_hdfs_data_dir }}"
+    state: directory
+    group: "{{ hadoop_group }}"
+    owner: "{{ hdfs_user }}"
+    mode: 0775
+  tags:
+    - hadoop_dirs
+
+- name: Create symlink to Hadoop configuration file
+  file:
+    src: "{{ hadoop_conf_dir }}"
+    dest: /etc/hadoop
+    state: link
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+  tags:
+    - hadoop_dirs
+
+- name: Template hadoop-env.sh to {{ hadoop_conf_dir }}/hadoop-env.sh
+  template:
+    src: hadoop-env.sh.j2
+    dest: "{{ hadoop_conf_dir }}/hadoop-env.sh"
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0644
+  tags:
+    - hadoop_config
+    - hadoop_env
+
+- name: Template core-site.xml to {{ hadoop_conf_dir }}/core-site.xml
+  template:
+    src: core-site.xml.j2
+    dest: "{{ hadoop_conf_dir }}/core-site.xml"
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0644
+  tags:
+    - hadoop_config
+    - core_site
+
+- name: Template hdfs-site.xml to {{ hadoop_conf_dir }}/hdfs-site.xml
+  template:
+    src: hdfs-site.xml.j2
+    dest: "{{ hadoop_conf_dir }}/hdfs-site.xml"
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0644
+  tags:
+    - hadoop_config
+    - hdfs_site
+
+- name: Template yarn-site.xml to {{ hadoop_conf_dir }}/yarn-site.xml
+  template:
+    src: yarn-site.xml.j2
+    dest: "{{ hadoop_conf_dir }}/yarn-site.xml"
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0644
+  tags:
+    - hadoop_config
+    - yarn_site
+
+- name: Template mapred-site.xml to {{ hadoop_conf_dir }}/mapred-site.xml
+  template:
+    src: mapred-site.xml.j2
+    dest: "{{ hadoop_conf_dir }}/mapred-site.xml"
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0644
+  tags:
+    - hadoop_config
+    - mapred_site
+
+- name: Template workers to {{ hadoop_conf_dir }}/workers
+  template:
+    src: workers.j2
+    dest: "{{ hadoop_conf_dir }}/workers"
+    group: "{{ hadoop_group }}"
+    owner: "{{ hadoop_user }}"
+    mode: 0644
+  tags:
+    - hadoop_config
+    - workers
+
+- name: Template hdfs-namenode systemd service file
+  template:
+    src: namenode.service.j2
+    dest: "{{ hadoop_hdfs_namenode_unit_path }}"
+    group: "{{ hadoop_group }}"
+    owner: "{{ hdfs_user }}"
+    mode: 0644
+  when: ansible_facts['hostname'] in groups['namenode']
+  tags:
+    - template_hdfs_service
+    - template_namenode_service
+    - hadoop_config
+
+- name: Template hdfs-datanode systemd service file
+  template:
+    src: datanode.service.j2
+    dest: "{{ hadoop_hdfs_datanode_unit_path }}"
+    group: "{{ hadoop_group }}"
+    owner: "{{ hdfs_user }}"
+    mode: 0644
+  when: ansible_facts['hostname'] in groups['datanode']
+  tags:
+    - template_hdfs_service
+    - template_datanode_service
+    - hadoop_config
+
+- name: Template resource_manager systemd service file
+  template:
+    src: rm.service.j2
+    dest: "{{ hadoop_yarn_rm_unit_path }}"
+    group: "{{ hadoop_group }}"
+    owner: "{{ yarn_user }}"
+    mode: 0644
+  when: ansible_facts['hostname'] in groups['resource_manager']
+  tags:
+    - template_yarn_service
+    - template_rm_service
+    - hadoop_config
+
+- name: Template node_manager systemd service file
+  template:
+    src: nm.service.j2
+    dest: "{{ hadoop_yarn_nm_unit_path }}"
+    group: "{{ hadoop_group }}"
+    owner: "{{ yarn_user }}"
+    mode: 0644
+  when: ansible_facts['hostname'] in groups['node_manager']
+  tags:
+    - template_yarn_service
+    - template_nm_service
+    - hadoop_config
+
+- name: Format a new distributed filesystem as hdfs
+  become: yes
+  become_user: "{{ hdfs_user }}"
+  command: "{{ hadoop_home }}/bin/hdfs namenode -format"
+  when: format_hdfs
+  tags:
+    - format_hdfs
+
+
+- name: Start the namenode service
+  systemd:
+    name: namenode.service
+    state: started
+    enabled: yes
+  when: 
+    - namenode_start 
+    - ansible_facts['hostname'] in groups['namenode']
+  tags:
+    - namenode_service
+    - hdfs_service
+    - hadoop_service
+
+- name: Start the datanode service
+  systemd:
+    name: datanode.service
+    state: started
+    enabled: yes
+  when: 
+    - ansible_facts['hostname'] in groups['datanode']
+    - datanode_start 
+  tags:
+    - datanode_service
+    - hdfs_service
+    - hadoop_service
+
+
+- name: Start the resource_manager service
+  systemd:
+    name: rm.service
+    state: started
+    enabled: yes
+  when: 
+    - rm_start 
+    - ansible_facts['hostname'] in groups['resource_manager']
+  tags:
+    - rm_service
+    - yarn_service
+    - hadoop_service
+
+
+- name: Start the node_manager service
+  systemd:
+    name: nm.service
+    state: started
+    enabled: yes
+  when: 
+    - nm_start 
+    - ansible_facts['hostname'] in groups['node_manager']
+  tags:
+    - nm_service
+    - yarn_service
+    - hadoop_service

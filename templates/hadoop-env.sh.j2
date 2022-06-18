@@ -1,0 +1,13 @@
+## Precedence rules:
+##
+## {yarn-env.sh|hdfs-env.sh} > hadoop-env.sh > hard-coded defaults
+##
+## {YARN_xyz|HDFS_xyz} > HADOOP_xyz > hard-coded defaults
+{% if ansible_facts['env']['JAVA_HOME'] %}
+export JAVA_HOME={{ ansible_facts['env']['JAVA_HOME'] }}
+{% endif %}
+{% for key, value in hadoop_env.items() %}
+export {{key}}={{value}}
+{% endfor %}
+
+

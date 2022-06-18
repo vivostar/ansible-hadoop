@@ -1,0 +1,188 @@
+---
+hadoop_version: "3.2.3"
+hadoop_package: "hadoop-{{ hadoop_version }}.tar.gz"
+hadoop_mirror: "https://soul3434.oss-ap-northeast-2.aliyuncs.com/hadoop"
+hadoop_download_url: "{{ hadoop_mirror }}/hadoop-{{ hadoop_version }}/{{ hadoop_package }}"
+
+hadoop_group: hadoop
+hadoop_user: hadoop
+hdfs_user: hdfs
+yarn_user: yarn
+mapred_user: mapred
+
+hadoop_root_dir: "/usr/share"
+hadoop_install_dir: "{{ hadoop_root_dir }}/apache-hadoop-{{ hadoop_version }}"
+hadoop_home: "{{ hadoop_root_dir }}/hadoop"
+hadoop_conf_dir: "{{ hadoop_home }}/etc/hadoop"
+hadoop_log_dir: "/var/log/hadoop"
+hadoop_tmp_dir: "/var/lib/hadoop"
+hadoop_hdfs_pid_dir: "/var/run/hadoop"
+hadoop_hdfs_name_dir: "{{ hadoop_tmp_dir }}/dfs/name"
+hadoop_hdfs_data_dir: "{{ hadoop_tmp_dir }}/dfs/data"
+hadoop_yarn_nodemanager_log_dirs: "/var/log/hadoop/yarn"
+
+
+# Start hadoop after installation
+namenode_start: yes
+namenode_restart: yes
+
+# Restart hadoop on configuration change
+datanode_start: yes
+datanode_restart: yes
+
+rm_start: yes
+nm_start: yes
+
+format_hdfs: yes
+
+# available are:
+# - "web" Fetching artifact from custom web uri 
+# - "local" Local artifact
+install_method: "local"
+
+nameservices: "{{ groups['namenode'][0] }}"
+resourcemanager: "{{ groups['resource_manager'][0] }}"
+
+hadoop_env:
+  HDFS_NAMENODE_OPTS: "\"-XX:+UseParallelGC -Xmx4g\""
+  HADOOP_LOG_DIR: "{{ hadoop_log_dir }}"
+  HADOOP_HOME: "{{ hadoop_home }}"
+  HADOOP_CONF_DIR: "{{ hadoop_conf_dir }}"
+  HADOOP_PID_DIR: "{{ hadoop_hdfs_pid_dir }}"
+
+
+
+hadoop_core_site:
+  # 指定访问hdfs文件系统的uri,在HA集群中,此值必须与hdfs-site.xml中的dfs.nameservices配置一致
+  fs.defaultFS: "hdfs://{{ nameservices }}"
+
+  # 定义.Trash目录下文件被永久删除前保留的时间,删除前,可从该目录移回文件并还原,单位为分钟
+  fs.trash.interval: "{{ 24 * 60 }}"
+
+  io.file.buffer.size: "{{ 128 * 1024 }}"
+
+  # hadoop NameNode Datanode Journalnode 数据存放目录
+  hadoop.tmp.dir: "{{ hadoop_tmp_dir }}"
+
+  # hdfs 文件权限模式, simple/kerbros
+  hadoop.security.authentication: "simple"
+
+
+  hadoop.proxyuser.hive.hosts: "*"
+  hadoop.proxyuser.hive.groups: "*"
+  hadoop.proxyuser.hdfs.hosts: "*"
+  hadoop.proxyuser.hdfs.groups: "*"
+  hadoop.proxyuser.yarn.hosts: "*"
+  hadoop.proxyuser.yarn.groups: "*"
+  hadoop.proxyuser.http.hosts: "*"
+  hadoop.proxyuser.http.groups: "*"
+  hadoop.proxyuser.flume.hosts: "*"
+  hadoop.proxyuser.flume.groups: "*"
+  hadoop.proxyuser.flink.hosts: "*"
+  hadoop.proxyuser.flink.groups: "*"
+  hadoop.security.group.mapping: "org.apache.hadoop.security.ShellBasedUnixGroupsMapping"
+  hadoop.security.instrumentation.requires.admin: "false"
+
+
+hadoop_hdfs_site:
+  
+  # hdfs 对外提供的同意服务名
+  dfs.nameservices: "{{ nameservices }}"
+
+  # namenode 数据存在本地文件系统的路径
+  dfs.namenode.name.dir: "file://{{ hadoop_hdfs_name_dir }}"
+
+  # datanode 数据存在本地文件系统的路径
+  dfs.datanode.data.dir: "file://{{ hadoop_hdfs_data_dir }}"
+
+  # hdfs 数据块大小 128MB 
+  dfs.block.size: "{{ 128 * 1024 * 1024 }}"
+
+  # 
+  dfs.namenode.handler.count: "10"
+
+  # hdfs 文件副本数量
+  dfs.replication: "1"
+
+  # hdfs 是否开启权限检查
+  dfs.permissions.enabled: "true"
+
+  # 指定超级用户组,默认是super
+  dfs.permissions.superusergroup: "hadoop"
+
+
+
+hadoop_yarn_site:
+
+  yarn.acl.enable: "false"
+
+  # 指定RM主机地址
+  yarn.resourcemanager.hostname: "{{ resourcemanager }}"
+
+  # 指定RM对ApplicationMaster暴露的访问地址,ApplicationMaster通过该地址向RM申请资源,释放资源等.
+  yarn.resourcemanager.scheduler.address: "{{ resourcemanager }}:8030"
+
+  # 指定RM对NM暴露的地址,NM通过该地址向RM汇报心跳,领取任务等.
+  yarn.resourcemanager.resource-tracker.address: "{{ resourcemanager }}:8031"
+
+  # 指定RM对客户端暴露的访问地址,客户端通过该地址向RM提交程序,杀死程序等.
+  yarn.resourcemanager.address: "{{ resourcemanager }}:8032"
+
+  # 指定RM对管理员暴露的访问地址,管理员通过该地址向RM发出管理命令等.
+  yarn.resourcemanager.admin.address: "{{ resourcemanager }}:8033"
+  
+  # RM对外开放的WEBUI,默认端口8088
+  yarn.resourcemanager.webapp.address: "{{ resourcemanager }}:8088"
+
+  # 启用新的ui界面,访问地址: rm:8088/ui2
+  yarn.webapp.ui2.enable: "true"
+
+  yarn.resourcemanager.scheduler.class: "org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler"
+
+  # 指定NM上运行的附属服务,需配置成"mapreduce_shuffle",才可以运行Mapreduce,也可同时配置为"spark_shuffle",这样yarn就可以支持MR和Spark两种计算框架了
+  yarn.nodemanager.aux-services: "mapreduce_shuffle"
+  # yarn.nodemanager.aux-services: "mapreduce_shuffle,spark_shuffle"
+  yarn.nodemanager.aux-services.mapreduce_shuffle.class: "org.apache.hadoop.mapred.ShuffleHandler"
+  # yarn.nodemanager.aux-services.spark_shuffle.class: "org.apache.spark.network.yarn.YarnShuffleService"
+
+  # 指定yarn中间结果数据储存目录,建议配置多个磁盘,平衡io
+  yarn.nodemanager.local-dirs: "file://{{ hadoop_tmp_dir }}/yarn"
+  #yarn.nodemanager.local-dirs: "file:///var/lib/yarn,file:///data/yarn"  如需开启此配置,需要在task中提前创建路径,否则linux yarn用户无权限创建文件
+
+  # 指定yarn NM container 的日志目录,可以配置多个磁盘,平衡io
+  yarn.nodemanager.log-dirs: "file://{{ hadoop_log_dir }}/yarn"
+
+  yarn.scheduler.minimum-allocation-mb: "1024"
+  yarn.scheduler.maximum-allocation-mb: "2048"
+  yarn.scheduler.minimum-allocation-vcores: "2"
+  yarn.scheduler.maximum-allocation-vcores: "4"
+
+  # 指定NM可以使用的最大物理内存
+  yarn.nodemanager.resource.memory-mb: "2048"
+  # 指定NM可以使用的虚拟CPU个数
+  yarn.nodemanager.resource.cpu-vcores: "2"
+
+  yarn.nodemanager.vmem-check-enabled: "false"
+  yarn.nodemanager.vmem-pmem-ratio: "2.1"
+
+  # 指定Job运行需要用到的jar包,如果需要自定义jar包,则可以把jar文件上传到各个服务器上,然后再把路径添加到此参数下面即可.
+  yarn.application.classpath: "{{ hadoop_home }}/lib/*,{{ hadoop_home }}/lib_aux/*,{{ hadoop_home }}/share/hadoop/hdfs/*,{{ hadoop_home }}/share/hadoop/hdfs/lib/*,{{ hadoop_home }}/share/hadoop/common/lib/*,{{ hadoop_home }}/share/hadoop/common/*,{{ hadoop_home }}/share/hadoop/mapreduce/*,{{ hadoop_home }}/share/hadoop/mapreduce/lib/*,{{ hadoop_home }}/share/hadoop/yarn/*,{{ hadoop_home }}/share/hadoop/yarn/lib/*"
+
+ 
+
+
+
+
+hadoop_mapred_site:
+
+  # mapreduce 计算框架 yarn/local
+  mapreduce.framework.name: "yarn"
+
+  yarn.app.mapreduce.am.env: "HADOOP_MAPRED_HOME={{ hadoop_home }}"
+  mapreduce.map.env: "HADOOP_MAPRED_HOME={{ hadoop_home }}"
+  mapreduce.reduce.env: "HADOOP_MAPRED_HOME={{ hadoop_home }}"
+
+  # mapreduce依赖jar包,当运行服务时报错class not find 时,可以在下面添加依赖路径
+  mapreduce.application.classpath: "{{ hadoop_home }}/lib/*,{{ hadoop_home }}/lib_aux/*,{{ hadoop_home }}/share/hadoop/hdfs/*,{{ hadoop_home }}/share/hadoop/hdfs/lib/*,{{ hadoop_home }}/share/hadoop/common/lib/*,{{ hadoop_home }}/share/hadoop/common/*,{{ hadoop_home }}/share/hadoop/mapreduce/*,{{ hadoop_home }}/share/hadoop/mapreduce/lib/*,{{ hadoop_home }}/share/hadoop/yarn/*,{{ hadoop_home }}/share/hadoop/yarn/lib/*"
+
+
