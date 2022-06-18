@@ -67,7 +67,7 @@
     url: "{{ hadoop_download_url }}"
     dest: /tmp
     validate_certs: no
-  when: not dir.stat.exists and install_method == "web"
+  when: not dir.stat.exists
   tags:
     - druid_download
   
